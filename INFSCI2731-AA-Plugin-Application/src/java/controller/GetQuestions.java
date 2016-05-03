@@ -1,4 +1,4 @@
-/*
+ /*
  * To change this license header, choose License Headers in Project Properties.
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
@@ -13,12 +13,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import DbConnect.DbConnection;
+import dataAccessObject.ActivityLogDao;
+import dataAccessObject.HostileDao;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpSession;
+import model.IPAddress;
 
 import model.ResetPasswordObj;
 
@@ -30,8 +33,10 @@ import model.ResetPasswordObj;
 public class GetQuestions extends HttpServlet {
 
     
-    private final int MAX_EMAIL_ATTEMPTS = 5;
+    private final int MAX_EMAIL_ATTEMPTS = 2;
     private final String SYSTEM_SOURCE = "EmailForm";
+    ActivityLogDao logDao = new ActivityLogDao();
+
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -47,6 +52,7 @@ public class GetQuestions extends HttpServlet {
         HttpSession session = request.getSession(false);
         int emailAttempts = 0;
         String emailString = "";
+        IPAddress ipAddress = new IPAddress();
         
         if (session == null) { //No session yet
             session = request.getSession();
@@ -61,16 +67,15 @@ public class GetQuestions extends HttpServlet {
             }
         }  
         
+        //get client ip addr and request URI for activity log
+            String sysSource = request.getRequestURI();
+            String ipAddr = ipAddress.getClientIpAddress(request);
+            
+        
         if(emailAttempts > MAX_EMAIL_ATTEMPTS) {
-            String ipAddress = request.getHeader("X-FORWARDED-FOR");
-            // if ip behind proxy
-            if (ipAddress == null) {  
-                    ipAddress = request.getRemoteAddr();  
-            }
-            //Hostile module redirect or object
-
-            Hostile hostile = new Hostile(emailAttempts, ipAddress, SYSTEM_SOURCE);
-            hostile.redirectHostile(request, response);
+            HostileDao hostileDao = new HostileDao();
+            hostileDao.WriteHostileToDB(emailAttempts, ipAddr, SYSTEM_SOURCE);
+            response.sendRedirect("error");
         } else {
             String email = request.getParameter("email");
             //Check if email exists
@@ -82,24 +87,42 @@ public class GetQuestions extends HttpServlet {
                 emailAttempts++;
                 emailString += email + ":" + SYSTEM_SOURCE + ";";
                 
+                //log email failed activity on forgot pw form
+                logDao.logEmailFailedOnForgotPw(ipAddr, sysSource, email);
                 session.setAttribute("emailAttempts", emailAttempts);       
                 session.setAttribute("emailString", emailString);
                 
                 response.sendRedirect("forgotpassword");
             } else {
-                String[] questions = getQuestionsFromIDDB(account_info_id);
-                if (questions != null) {
-                    // reset the session on success
-                    session.invalidate();
-                    session = request.getSession();
-                    ResetPasswordObj resetPasswordObj = new ResetPasswordObj(account_info_id, questions[0], questions[1]);
+                String previousEmail = "";
+                
+                if(session.getAttribute("previousEmail") != null) {
+                    previousEmail = session.getAttribute("previousEmail").toString();
+                }
+                
+                if (session.getAttribute("resetPasswordObj") == null || !email.equals(previousEmail)) {
+                    String[] questions = getQuestionsFromIDDB(account_info_id);
+                    if (questions != null) {
+                        // reset the session on success
+                        session.invalidate();
+                        session = request.getSession();
+                        ResetPasswordObj resetPasswordObj = new ResetPasswordObj(account_info_id, questions[0], questions[1]);
+                        session.setAttribute("previousEmail", email);
+                        session.setAttribute("resetPasswordObj", resetPasswordObj);
+                        request.setAttribute("question_string", questions[1]);
+                        RequestDispatcher rd = request.getRequestDispatcher("questions");
+                        rd.forward(request, response);
+                    } else {
+                        //error
+                    }
+                } else {
+                    ResetPasswordObj resetPasswordObj = (ResetPasswordObj)session.getAttribute("resetPasswordObj");
                     session.setAttribute("resetPasswordObj", resetPasswordObj);
-                    request.setAttribute("question_string", questions[1]);
+                    request.setAttribute("question_string", resetPasswordObj.securityQuestion);
                     RequestDispatcher rd = request.getRequestDispatcher("questions");
                     rd.forward(request, response);
-                } else {
-                    //error
                 }
+                
             }  
         }
     

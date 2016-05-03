@@ -5,20 +5,19 @@
  */
 package model;
 
-import dataAccessObject.AnswerDao;
-import dataAccessObject.UserDao;
+import dataAccessObject.QuestionAnswerDao;
 
 /**
  *This class is to create bean for question_answer
  * @author Hanwei Cheng
  */
-public class Question_Answer {
+public class QuestionAnswer {
     private int id;
     private String answer;
     private int account_info_id;
     private int security_question_id;
     private int timestamps_id;
-    private AnswerDao dao;
+    private QuestionAnswerDao dao;
 
     public int getId() {
         return id;
@@ -60,15 +59,14 @@ public class Question_Answer {
         this.timestamps_id = timestamps_id;
     }
     
-    public void generateRecord(){
-        // create new timeStamp
-        TimeStamp time = new TimeStamp();
-        long timeID = time.getTimeStampsID();
+    public void questionAnswerProcess(int accountID, int questionID, String answer){
         //create a new set question and answer
-        dao = new AnswerDao();
-      System.out.println("===== bean of question_answer " + answer + account_info_id + security_question_id);
-        this.id =(int)dao.createQuestionAnswer(answer, account_info_id, security_question_id,timeID);
-        
+        QuestionAnswerDao qad = new QuestionAnswerDao();
+        this.account_info_id = accountID;
+        this.security_question_id = questionID;
+        this.answer = answer;
+        //System.out.println("===== bean of question_answer ===" + " answer: " + answer + " accountID: " + account_info_id + " secQueID: "+ security_question_id);
+        this.id = qad.saveQuestionAnswer(answer, account_info_id, security_question_id);
     }
     
 }

@@ -1,8 +1,9 @@
 <%-- 
-    Document   : RBACtest
-    Created on : Apr 17, 2016, 9:53:13 PM
-    Author     : Zhirun Tian, Hanwei Cheng
+    Document   : RBACtest2
+    Created on : April 19, 2016, 7:38:49 PM
+    Author     : Hanwei Cheng
 --%>
+
 
 <%@page import="model.IPAddress"%>
 <%@page import="dataAccessObject.ActivityLogDao"%>
@@ -11,42 +12,40 @@
 <%@ page import="controller.RBAC" %> 
 <%@ page import="dataAccessObject.RBACDao" %> 
 
-
- <%
-     //log RBAC activity
+<%
+    //log RBAC activity
         ActivityLogDao logDao = new ActivityLogDao();
         IPAddress ipAddress = new IPAddress();        
         //get client ip addr and request URI for activity log
         String sysSource = request.getRequestURI();
         String ipAddr = ipAddress.getClientIpAddress(request);
-        
     //check whether the role ID of the user has priviledge for current page
     if(request.getSession().getAttribute("user")!=null){
          UserAccountInfo user = (UserAccountInfo)session.getAttribute("user");
          RBACDao accessControl = new RBACDao();
-         List<Integer> UserPool = accessControl.getRolebyPath("RBACtest.jsp");
+         List<Integer> UserPool = accessControl.getRolebyPath("admin.jsp");
         if(!UserPool.contains(user.getAccess_role_id()))
-        {
-            //log access denied activity
-            logDao.logRBPCheck(ipAddr, sysSource, "RBAC access denied to RBACtest.jsp", user.getId());
+        {//log access denied activity
+            logDao.logRBPCheck(ipAddr, sysSource, "RBAC access denied to admin.jsp", user.getId());
             response.sendRedirect("index.jsp");
         }
         //log access successfully activity
-        logDao.logRBPCheck(ipAddr, sysSource, "RBAC access successfully to RBACtest.jsp", user.getId());
+        logDao.logRBPCheck(ipAddr, sysSource, "RBAC access successfully to admin.jsp", user.getId());
     }else {
         //log no session activity
-        logDao.logAccessAttempt(ipAddr, sysSource, "no session attribute user set up, access denied to RBACtest.jsp");
+        logDao.logAccessAttempt(ipAddr, sysSource, "no session attribute user set up, access denied to admin.jsp");
             response.sendRedirect("login.jsp");
         }
         
 %>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+
 <!DOCTYPE html>
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>test5</title>
+        <title>test4</title>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
 
     </head>
@@ -70,10 +69,10 @@
             <li><a href="hostilelist.jsp">Hostile</a></li>
             <li><a href="activitylog.jsp">Activity Log</a></li>
             <li><a href="roleManage.jsp">Role Management</a></li>
-            <li><a href="admin.jsp">Admin Page</a></li>
-            <li class="active"><a href="RBACtest.jsp">RBAC Test</a></li>
+            <li class="active"><a href="admin.jsp">Admin Page</a></li>
+            <li><a href="RBACtest.jsp">RBAC Test</a></li>
           </ul>
-          <ul class="nav navbar-nav navbar-right">
+           <ul class="nav navbar-nav navbar-right">
             <!--put the name on the navigation bar-->
                 <br>
                         <% 
@@ -90,11 +89,7 @@
       </div>
     </nav>
 
-                    
-                    
-                    
-
-
+                  
 
     
     <!-- Begin page content -->
@@ -102,8 +97,8 @@
       <div class="page-header">
         <h1>Authentication Project</h1>
       </div>
-        <p> You have privilege to access the page!</p>
-        <p> For super admin, admin and user.</p>
+        <p> You have privilege to access the page! </p>
+        <p>For Super Admin, admin </p>
     </div>
 
     <footer class="footer">

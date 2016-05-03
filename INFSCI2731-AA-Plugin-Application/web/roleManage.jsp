@@ -1,7 +1,7 @@
 <%-- 
-    Document   : hostilelist
-    Created on : Apr 10, 2016, 3:21:53 AM
-    Author     : Zhirun Tian
+    Document   : RBACtest3
+    Created on : April 19, 2016, 7:38:49 PM
+    Author     : Hanwei Cheng
 --%>
 
 
@@ -11,46 +11,45 @@
 <%@page import="model.UserAccountInfo"%>
 <%@page import="java.util.List"%>
 <%@ page import="controller.RBAC" %> 
-<%@ page import="dataAccessObject.RBACDao" %>
+<%@ page import="dataAccessObject.RBACDao" %> 
 
 <%
     //log RBAC activity
-    ActivityLogDao logDao = new ActivityLogDao();
-    IPAddress ipAddress = new IPAddress();
-    //get client ip addr and request URI for activity log
-    String sysSource = request.getRequestURI();
-    String ipAddr = ipAddress.getClientIpAddress(request);
+        ActivityLogDao logDao = new ActivityLogDao();
+        IPAddress ipAddress = new IPAddress();        
+        //get client ip addr and request URI for activity log
+        String sysSource = request.getRequestURI();
+        String ipAddr = ipAddress.getClientIpAddress(request);
     //check whether the role ID of the user has priviledge for current page
     if (request.getSession().getAttribute("user") != null) {
         UserAccountInfo user = (UserAccountInfo) session.getAttribute("user");
         RBACDao accessControl = new RBACDao();
-        List<Integer> UserPool = accessControl.getRolebyPath("hostilelist.jsp");
+        List<Integer> UserPool = accessControl.getRolebyPath("roleManage.jsp");
         if (!UserPool.contains(user.getAccess_role_id())) {
             //log access denied activity
-            logDao.logRBPCheck(ipAddr, sysSource, "RBAC access denied to hostilelist.jsp", user.getId());
+            logDao.logRBPCheck(ipAddr, sysSource, "RBAC access denied to roleManage.jsp", user.getId());
             response.sendRedirect("index.jsp");
         }
         //log access successfully activity
-        logDao.logRBPCheck(ipAddr, sysSource, "RBAC access successfully to hostilelist.jsp", user.getId());
+        logDao.logRBPCheck(ipAddr, sysSource, "RBAC access successfully to roleManage.jsp", user.getId());
     } else {
         //log no session activity
-        logDao.logAccessAttempt(ipAddr, sysSource, "no session attribute user set up, access denied to hostilelist.jsp");
+        logDao.logAccessAttempt(ipAddr, sysSource, "no session attribute user set up, access denied to roleManage.jsp");
         response.sendRedirect("login.jsp");
     }
 
 %>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
-
 <!DOCTYPE html>
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>test2</title>
+        <title>test3</title>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
     </head>
     <body>
-
 
         <!-- Fixed navbar -->
         <nav class="navbar navbar-default navbar-fixed-top">
@@ -67,9 +66,9 @@
                 <div id="navbar" class="collapse navbar-collapse">
                     <ul class="nav navbar-nav">
                         <li><a href="index.jsp">Home</a></li>
-                        <li class="active"><a href="hostilelist.jsp">Hostile</a></li>
+                        <li><a href="hostilelist.jsp">Hostile</a></li>
                         <li><a href="activitylog.jsp">Activity Log</a></li>
-                        <li><a href="roleManage.jsp">Role Management</a></li>
+                        <li class="active"><a href="roleManage.jsp">Role Management</a></li>
                         <li><a href="admin.jsp">Admin Page</a></li>
                         <li><a href="RBACtest.jsp">RBAC Test</a></li>
                     </ul>
@@ -83,38 +82,64 @@
                                 out.print("<a href='LogOut'>Log Out</a>");
                             }
                         %>
-
-                    </ul> 
+                    </ul>
                 </div><!--/.nav-collapse -->
             </div>
         </nav>
 
-        <!--content part--->
-        <div class="container" style="margin-top:100px; margin-bottom:250px;">
+
+        <!-- Begin page content -->
+        <div class="container" style="margin-top:100px;margin-bottom:250px;">
+
             <div class="page-header">
-                <h1 href="Hostile?action=getHostile">Get Hostile entry</h1>
+                <h1>Role Management</h1>
             </div>
 
-            <form name="resetform-password" method="POST" action="Hostile">
-        <!--        <input type="hidden" name="token" value="${param.token}">-->
-                Enter CountAttempts <input name="countAttempt" type="text" value="5" />
-                <br/><br/>
-                Enter IP address: <input name="IPAddress" type="text" value="192.168.32.11"/>
-                <br/><br/>
-                Enter SYSTEM_SOURCE: <input name="SYSTEM_SOURCE" type="text" value="from_security_question" />
-                <br/><br/>
+            <!--management area-->
+            <div class="ManagementArea" style="margin-top:30px">
 
-                <input type="submit">
-            </form>
+                <form class="form-inline" action="RoleManageServlet" method="post">
+                    <div class="form-group">
+                        <label for="userEmail">User Email</label>
+                        <input name="userEmail" id="userEmail" type="text" class="form-control"  placeholder="john@example.com" maxlength="254" onkeyup="checkUserEmail(); return false;" required>
+                    </div>
 
-            <input type = "button" value = "get hostile" onclick = "window.location.href = 'Hostile?action=getHostile'">  
+                    <select name="roleChoice" class="form-control">
+                        <option value="1">User</option>
+                        <option value ="2">Administrator</option>
+                    </select>
+
+                    <button type="submit" class="btn btn-default">Change</button>
+                </form>
+                <div class="message">
+                    <!--show message when change role successfully-->
+                    <%
+                        if(request.getAttribute("message")!= null && !request.getAttribute("message").equals("")){    
+                               out.print(request.getAttribute("message"));
+                        }
+                    %>
+                    <div id="errEmailMsg" style="color: red;"></div>
+                   
+                </div>
+            </div><!--management area-->
+
+
         </div><!--container-->
+
+        <footer class="footer">
+            <div class="container">
+                <p class="text-muted">&copy; 2016 E-Commerce Security &middot; <a href="#">Privacy</a>
+                    &middot; <a href="#">Terms</a></p>
+            </div>
+        </footer>
+
 
         <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
         <!-- Latest compiled and minified JavaScript -->
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous">
         </script>
-    </body>
+        <script src="js/formCheck.js" type="text/javascript"></script>
 
+    </body>
 </html>

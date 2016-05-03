@@ -5,29 +5,28 @@
  */
 package controller;
 
-import dataAccessObject.NonceDao;
+import DbConnect.DbConnection;
+import dataAccessObject.ActivityLogDao;
+import dataAccessObject.UserDao;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import model.Nonce;
+import model.IPAddress;
 
 /**
  *
- * @author wazi1221
+ * @author Siwei Jiao
  */
-public class Test extends HttpServlet {
-    private Nonce nonce;
-    
-    final private NonceDao nonceDao;
-    
+@WebServlet(name = "CheckEmailAvailability", urlPatterns = {"/CheckEmailAvailability"})
+public class CheckEmailAvailability extends HttpServlet {
 
-    public Test() {
-        super();              
-        nonceDao = new NonceDao();            
-    }
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -39,33 +38,29 @@ public class Test extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
-            String action = request.getParameter("action");
-
-            if(action.equalsIgnoreCase("getNonce")) {
-                int accoutInfoID = 1;
-                String n = nonceDao.getNewNonce(accoutInfoID);
-                nonce = nonceDao.getNonceByNonceValue(n);
-                
-            response.setContentType("text/html;charset=UTF-8");
-            try (PrintWriter out = response.getWriter()) {
-                /* TODO output your page here. You may use following sample code. */
-                out.println("<!DOCTYPE html>");
-                out.println("<html>");
-                out.println("<head>");
-                out.println("<title>Servlet Test</title>");            
-                out.println("</head>");
-                out.println("<body>");
-                out.println("<p>Servlet" + request.getContextPath() + "</p>");
-                out.println("<p>nonce id " + nonce.getNonceID() + "</p>");
-                out.println("<p>val " + nonce.getNonceValue() + "</p>");
-                out.println("<p>create time" + nonce.getTimeStampsID()+ "</p>");
-                out.println("<p>acct id" + nonce.getAccountInfoID() + "</p>");
-                out.println("</body>");
-                out.println("</html>");
-                    
-            }
+              
+       String email = request.getParameter("email").trim();
+       
+       UserDao userDao = new UserDao();
+       int count = userDao.checkIfEmailExist(email);
+       
+       //get client ip addr and request URI for activity log
+        String sysSource = request.getRequestURI();
+        IPAddress ipAddress = new IPAddress();
+        String ipAddr = ipAddress.getClientIpAddress(request);
+        ActivityLogDao logDao = new ActivityLogDao();
+             
+       if(count >= 1 ){
+           //log the activity to track if user try to get info about registered email addresses
+           logDao.logAccessAttempt(ipAddr, sysSource, "check email availability: taken email " + email);
+            response.setContentType("text/plain");
+            response.getWriter().write("notAvailable"); 
+        }else if(count == 0 ) {
+           logDao.logAccessAttempt(ipAddr, sysSource, "check email availability: available email " + email);
+            response.setContentType("text/plain");
+            response.getWriter().write("available");                 
         }
+       
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">

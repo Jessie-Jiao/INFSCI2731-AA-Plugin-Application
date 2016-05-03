@@ -6,20 +6,22 @@
 package controller;
 
 import dataAccessObject.ActivityLogDao;
+import dataAccessObject.UserDao;
 import java.io.IOException;
-import java.io.PrintWriter;
+import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import model.QuestionAnswer;
+import model.Authentication;
 import model.IPAddress;
-import model.Question_Answer;
-import model.SecurityQuestion;
 import model.UserAccountInfo;
 /**
  *This class is the controller to deal with user information in signup page
- * @author Hanwei
+ * @author Hanwei Cheng
  */
 @WebServlet(name = "AccountInfoServlet", urlPatterns = {"/AccountInfoServlet"})
 public class RegistrationServlet extends HttpServlet {
@@ -35,74 +37,103 @@ public class RegistrationServlet extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        System.out.println("in servlet");
-        System.out.println("==" + request.getParameter("firstname"));
-        UserAccountInfo user = new UserAccountInfo();
-        user.setFirstName(request.getParameter("firstname"));
-        user.setLastName(request.getParameter("lastname"));
-        user.setEmailAddress(request.getParameter("email"));
-        //return to the page for testing purpose
-        request.setAttribute("user", user); 
-        
-        int accountId = user.register(); //modified by Siwei in order to get the new generated account id
-        
-        
-        //log activity of new created account, by Siwei
+        System.out.println("==in servlet==");
+        UserAccountInfo newUser = new UserAccountInfo();
+     
+        System.out.println("==in servlet==" + "firstname: "+ request.getParameter("firstname")+" lastname: "+request.getParameter("lastname"));
+//        request.setAttribute("user", user); 
+
         IPAddress ipAddress = new IPAddress();
 //        String sysSource = request.getRequestURL().toString();
         String sysSource = request.getRequestURI();
         String ipAddr = ipAddress.getClientIpAddress(request);
         ActivityLogDao logDao = new ActivityLogDao();
-        logDao.logNewAccountCreated(ipAddr, sysSource, accountId);
-        
-        
-        
-        //set security Question &answer 1
-        Question_Answer qa1 = new Question_Answer();
-        qa1.setAccount_info_id(user.getId());
-        System.out.println("===== " + request.getParameter("secQue1"));
-        int question1 = Integer.parseInt(request.getParameter("secQue1"));
-        qa1.setSecurity_question_id(question1);
-        qa1.setAnswer(request.getParameter("answer1"));
-        
- 
-        //set security question &answer 2
-        Question_Answer qa2 = new Question_Answer();
-        qa2.setAccount_info_id(user.getId());
-        int question2 = Integer.parseInt(request.getParameter("secQue2"));
-        qa2.setSecurity_question_id(question2);
-        qa2.setAnswer(request.getParameter("answer2"));
-        
-        
-        //set security question 3
-        Question_Answer qa3 = new Question_Answer();
-        qa3.setAccount_info_id(user.getId());
-        int question3 = Integer.parseInt(request.getParameter("secQue3")); //selector???? 
-        qa3.setSecurity_question_id(question3);
-        qa3.setAnswer(request.getParameter("answer3"));
-        
 
-        //create 3 question &answer records for one user
-        qa1.generateRecord();
-        qa2.generateRecord();
-        qa3.generateRecord();
+        //check input
+        String str="";
+        String firstName = request.getParameter("firstname").trim();
+        firstName = firstName.substring(0,1).toUpperCase() + firstName.substring(1).toLowerCase();
+        String lastName = request.getParameter("lastname").trim();       
+        lastName = lastName.substring(0,1).toUpperCase() + lastName.substring(1).toLowerCase();
+        String email = request.getParameter("email").trim().toLowerCase();       
+        String password = request.getParameter("password").trim();
+        String retypepassword = request.getParameter("retypepassword").trim();
+        int q1 = Integer.parseInt(request.getParameter("secQue1"));
+        int q2 = Integer.parseInt(request.getParameter("secQue2"));
+        int q3 = Integer.parseInt(request.getParameter("secQue3"));
+             
         
-        //forward server's request to jsp
-        getServletContext().getRequestDispatcher("/signup.jsp").forward(request, response);
-       
-//        String firstname =(String)request.getParameter("firstname");
-//        String lastname =(String)request.getParameter("lastname");
-//        String email =(String)request.getParameter("email");
-//        
+            if(!firstName.matches("[a-zA-Z]+")) {
+                str += "First name may only contain letters. ";
+            }
+            if(!lastName.matches("[a-zA-Z]+")) {
+                str += "Last name may only contain letters. ";
+            }
+             //check email availability  
+            UserDao userDao = new UserDao();
+            if(userDao.checkIfEmailExist(email) >=1) {
+                str += "Email address is not available. ";
+            }
+            //check if entered pws equal to each other
+            if(!password.equals(retypepassword)) {
+                str += "Password doesn't match. ";
+            }                      
+            //check if security questions are same
+            if(!(q1 != q2 && q1 != q3 && q2 != q3)) {
+                str += "Securiry questions cannot be the same. ";
+            }
+        
+            if(!str.equals("")) {
+                //
+                logDao.logAccessAttempt(ipAddr, sysSource, "registration err: " + str);
+                request.setAttribute("msg", str + "please try again.");
+                RequestDispatcher rd = request.getRequestDispatcher("/registration.jsp");
+                rd.forward(request, response);                 
+                
+            }else {
+                
+                //create a normal user
+                int accountId = newUser.register(firstName, lastName, email, 1); //modified by Siwei in order to get the new generated account id
+
+                //create a Super Admin user
+        //        int accountId = newUser.register(request.getParameter("firstname"), request.getParameter("lastname"), request.getParameter("email"), 3);
+
+
+                //create a session and put user object in session
+                HttpSession session = request.getSession();
+                session.setAttribute("user", newUser);
+                //debug
+                UserAccountInfo testUser = (UserAccountInfo)session.getAttribute("user");
+                System.out.println("==test user bean in session ==" +testUser.getEmailAddress());
+
+
+                //log activity of new created account, by Siwei                
+                logDao.logNewAccountCreated(ipAddr, sysSource, accountId);
+
+
+                //process the password and store it in database
+                Authentication auth = new Authentication();
+                auth.passwordProcess(accountId, request.getParameter("password"));
+
+                //set security Question &answer 1 
+                QuestionAnswer qa1 = new QuestionAnswer();
+                qa1.questionAnswerProcess(accountId, Integer.parseInt(request.getParameter("secQue1")), request.getParameter("answer1").toLowerCase());
+
+                //set security question &answer 2
+                QuestionAnswer qa2 = new QuestionAnswer();
+                qa2.questionAnswerProcess(accountId, Integer.parseInt(request.getParameter("secQue2")), request.getParameter("answer2").toLowerCase());
+
+
+                //set security question 3
+                QuestionAnswer qa3 = new QuestionAnswer();
+                qa3.questionAnswerProcess(accountId, Integer.parseInt(request.getParameter("secQue3")), request.getParameter("answer3").toLowerCase());
+
+                //forward server's request to jsp
+                getServletContext().getRequestDispatcher("/index.jsp").forward(request, response);   
+            }
+
+
 		
-//        PrintWriter writer = response.getWriter();
-//        String htmlResponse = "<html>";
-//        htmlResponse += "<h2>Your name is: " + firstname + "</h2>";
-//        htmlResponse += "<h2>Your name is: " + lastname + "</h2>";
-//        htmlResponse += "<h2>Your mail is: " +email+ "</h2>";
-//        htmlResponse += "</html>";
-//
-//        writer.println(htmlResponse);
 
     }
 

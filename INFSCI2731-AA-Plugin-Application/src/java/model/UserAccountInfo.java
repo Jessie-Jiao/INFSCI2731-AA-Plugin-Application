@@ -6,6 +6,7 @@ package model;
  * @modified by Carol
  */
 
+import dataAccessObject.TimeStampDao;
 import dataAccessObject.UserDao;
 
 public class UserAccountInfo {
@@ -74,23 +75,30 @@ public class UserAccountInfo {
         this.dao = dao;
     }
 
-    //create new account
-    public int register() {
-        // create new timestamp and return id
-        TimeStamp time = new TimeStamp();
-        long timeID = time.getTimeStampsID();
-        //create new role and return id
-        Role role = new Role();
-        int roleID = role.getId();
-        System.out.println("==roleID=="+ roleID);
-        //create a new account
-        dao = new UserDao();
-        System.out.println("===== bean " + firstName + "   " + emailAddress);
+    //create new account record in account_info table
+    public int register(String firstname, String lastname, String email, int roleID) {
+        this.firstName = firstname;
+        this.lastName = lastname;
+        this.emailAddress = email;
+        this.access_role_id = roleID;
         
+        UserDao user = new UserDao();
+        System.out.println("===== user bean " + "firstname: " + firstName + " lastname: " + lastName+ "email: " +emailAddress + "roleID: " + roleID + "====");
         //create account and return the generated id
-        return this.id = dao.createAccount(firstName,lastName, emailAddress, timeID, roleID);
+        return this.id = user.createAccount(firstName,lastName, emailAddress, access_role_id);
+    }
+    
+    //this method is to change the roleID for user
+    public Boolean roleUpdate(int accountID, int roleID) {
+       UserDao dao = new UserDao();
+       Boolean res = dao.roleIDChange(accountID, roleID);
+       
+       //update timestamps associated with the user account
+        TimeStampDao timeStampDao = new TimeStampDao();
+        timeStampDao.updateTimestampOnProfileChange(accountID);
         
-        
+       System.out.println("role change successful? " + res);
+       return res;
     }
 
 }

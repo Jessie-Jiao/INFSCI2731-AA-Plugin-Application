@@ -12,6 +12,7 @@ public class AuthenticationDao {
     private Connection connection;
     Statement st = null;
     ResultSet rs = null;
+    String sql = "";
     String sqlCallforAccountID,sqlCallForHash;
     
     public AuthenticationDao(){
@@ -53,25 +54,25 @@ public class AuthenticationDao {
 		    		if(MessageDigest.isEqual(calculatedHash, retrievedHash)){
 		    			//passwords matched
 		    			return account_info_id;
-		    		}else{                                   
+		    		}else{
 		    			//Password does not match..
 		    			System.out.print("Passwd does not match");
-		    			return -1; //-1 means pw does not match
+		    			return -1; //-1 indicates pw does not match
 		    		}
 		    	}else{
 		    		//Password does not exist
 		    		System.out.print("Passwd does not exist");
-		    		return null;
+		    		return -3;
 		    	}
 	    		
 	    	}else{
 	    		//User name does not exist
 	    		System.out.print("Username does not exist");
-	    		return -2; //user entered email does not exist
+	    		return -2; //-2 indicates user entered email does not exist
 	    	}
 	    }catch(Exception e){
 	    	e.printStackTrace();
-	    	return null;
+	    	return -1;
 	    }
 		
 	}
@@ -93,4 +94,35 @@ public class AuthenticationDao {
 			return null;
 		}
 	}
+        
+        
+ /**
+ *These method is to create a new record for authentication table
+ * @author: Hanwei Cheng
+ */
+        public int createAuthentication(String hash, String password_salt, int account_info_id, boolean active, long timestamps_id){
+             try {
+                sql = "INSERT INTO INFSCI2731.authentication(hash, password_salt, account_info_id, active, timestamps_id) values (?, ?, ?, ?, ?)";
+                PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);  
+                // Parameters start with 1
+                ps.setString(1, hash);               
+                ps.setString(2, password_salt);               
+                ps.setInt(3, account_info_id); 
+                ps.setBoolean(4, active);
+                ps.setLong(5, timestamps_id);
+                ps.executeUpdate();
+                
+                ResultSet rs = ps.getGeneratedKeys();
+                if(rs.next()) {
+                    int autoKey = rs.getInt(1);
+                    return autoKey;
+                } else
+                    return -1;
+
+            } catch (SQLException e) {
+                    e.printStackTrace();
+                return -1;            
+            }
+        }
+   
 }

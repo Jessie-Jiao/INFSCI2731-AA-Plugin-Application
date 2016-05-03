@@ -30,7 +30,7 @@ public class Role {
         public Role(){
             dao = new RoleDao();
             this.id = dao.getUserID();
-            System.out.println("== new role" + id);
+            System.out.println("== new role: " + id + "==");
         }
         
         //create a administrator

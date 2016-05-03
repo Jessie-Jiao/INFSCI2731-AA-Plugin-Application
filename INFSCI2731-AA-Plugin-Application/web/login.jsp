@@ -19,7 +19,7 @@
 
 </head>
 <body>
-	<div class="container">           
+	<div class="container">
 		<div class="jumbotron">
 			<div class="form-group"></div>
 			<form name="loginForm" class="form-horizontal login" method="post">
@@ -53,13 +53,12 @@
                 <a type="button" href="forgotpassword"  class="btn btn-default">Forgot Password</a>
 				</div>
 			</form>
-                        
                         <div id="registerDiv">
                             <br/>
                             <br/>
-                           Register <a href="signup.jsp">here</a>.
+                           New user? Register <a href="registration.jsp">here</a>.
                         </div>
-		</div>                                                         
+		</div>
 	</div>
 	<!-- FOOTER -->
 	<div class="container marketing">
@@ -92,12 +91,18 @@
 				var xhttp = new XMLHttpRequest();
 				xhttp.onreadystatechange = function() {
 			    	if (xhttp.readyState == 4 && xhttp.status == 200) {
-			    		document.getElementById("wrongCrendials").innerHTML = xhttp.responseText;
+                                    var response = xhttp.responseText;
+                                    if( response.toString()==="Success"){
+                                        
+                                            window.location = "index.jsp";
+                                    }else{
+                                        document.getElementById("wrongCrendials").innerHTML = response;   
+                                    }  		
 			    	}
 			  	};
 			  	var username = document.forms["loginForm"]["username"].value;
 			  	var password = document.forms["loginForm"]["password"].value;
-				xhttp.open("POST", "authenticationController", true);
+				xhttp.open("POST", "AuthenticationController", true);
 				xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
 				xhttp.send("username="+username+"&password="+password);	
 			}

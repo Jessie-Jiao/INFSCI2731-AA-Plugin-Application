@@ -10,6 +10,8 @@ import java.sql.*;
 import java.util.Date;
 import model.TimeStamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -77,5 +79,82 @@ public class TimeStampDao {
             }   
 
         }
+        
+        /**
+         * 
+         * @param id 
+         */
+        public void update_timestamp(int id) {
+            Date now = new Date();
+            try { 
+                sql = "UPDATE INFSCI2731.timestamps SET update_time = ? where id = ? ";
+                PreparedStatement ps = connection.prepareStatement(sql);  
+                ps.setTimestamp(1, new Timestamp(now.getTime()));
+                ps.setInt(2,id) ;                
+                ps.executeUpdate();  
+
+            } catch (SQLException e) {
+                    e.printStackTrace();
+            }
+        }
+        
+        /**
+         * 
+         * @param accountID 
+         */
+        public void updateOldPasswordTimestamp(int accountID) {
+            List<Integer> timestampIDs = new ArrayList<Integer>();  
+            //get all old password timestamp ids
+            try{
+                sql = "SELECT timestamps_id FROM INFSCI2731.authentication WHERE account_info_id = ? and active = 0"; 
+                PreparedStatement ps = connection.prepareStatement(sql);
+                    ps.setInt(1,accountID) ;                
+                    rs = ps.executeQuery() ;
+
+                while (rs.next()) { 
+                    timestampIDs.add(rs.getInt("timestamps_id"));                               
+                }
+                rs.close();
+
+            } catch (SQLException e) {
+                    e.printStackTrace();
+            }    
+
+            //update update_time in timestamps table for each id
+            for(Integer id : timestampIDs) {
+                update_timestamp(id);
+            }           
+        }
+        
+        /**
+         * update update_time in timestamps table of activities like profile, role update
+         * @param accountID 
+         */
+        public void updateTimestampOnProfileChange(int accountID) {
+            //get timestamp id of account_info
+            int timestampID = 0;
+            try{
+                sql = "SELECT timestamps_id FROM INFSCI2731.account_info WHERE id = ?"; 
+                PreparedStatement ps = connection.prepareStatement(sql);
+                    ps.setInt(1,accountID) ;                
+                    rs = ps.executeQuery() ;
+
+                if(rs.next()) { 
+                    timestampID = rs.getInt("timestamps_id");                               
+                }
+                rs.close();
+
+            } catch (SQLException e) {
+                    e.printStackTrace();
+            }    
+
+            //update update_time in timestamps table
+            if(timestampID > 0) {
+                update_timestamp(timestampID);               
+            }
+                       
+        }
+        
+        
         
 }

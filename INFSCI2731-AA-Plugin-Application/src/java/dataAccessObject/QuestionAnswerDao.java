@@ -11,12 +11,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import model.TimeStamp;
 
 /**
  *This class is to create DAO for question_answer
  * @author Hanwei Cheng
  */
-public class AnswerDao {
+public class QuestionAnswerDao {
     private int id;
     private String answer;
     private int account_info_id;
@@ -27,13 +28,17 @@ public class AnswerDao {
     ResultSet rs = null;
     String sql = "";
     
-     public AnswerDao() {
+     public QuestionAnswerDao() {
         //connect to database and select the record
         connection = DbConnection.getConnection();
-        System.out.println("UserDao connection");
+        System.out.println("==AnswerDao connection==");
     }
     
-    public long createQuestionAnswer(String answer, int account_info_id, int security_question_id, long timestamps_id){
+    public int saveQuestionAnswer(String answer, int account_info_id, int security_question_id){
+        // create new timeStamp
+        TimeStamp time = new TimeStamp();
+        long timestamps_id = time.getTimeStampsID();
+        
         try {
                 sql = "INSERT INTO INFSCI2731.security_question_answer(answer, account_info_id, security_question_id, timestamps_id) values (?, ?, ?, ?)";
                 PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);  
@@ -46,7 +51,7 @@ public class AnswerDao {
                 
                 ResultSet rs = ps.getGeneratedKeys();
                 if(rs.next()) {
-                    long autoKey = rs.getLong(1);
+                    int autoKey = rs.getInt(1);
                     return autoKey;
                 } else
                     return -1;

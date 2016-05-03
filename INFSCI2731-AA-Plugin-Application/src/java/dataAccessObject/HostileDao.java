@@ -41,9 +41,7 @@ public class HostileDao {
         connection = DbConnection.getConnection();
     }
 
-    public List<HostileStructure> ReadHostileFromLog() {
 
-    }
 
     public List<HostileStructure> GetHostileFromLogDB() {
 
@@ -59,11 +57,12 @@ public class HostileDao {
         try {
             connection = DbConnection.getConnection();
 
-            String sql = "SELECT * FROM infsci2731.activity_log WHERE system_source = ?";
+            String sql = "SELECT * FROM infsci2731.activity_log where description = '[hostile]'";
 
             preparedStatement = connection.prepareStatement(sql);
             //here should have 3 variables to distinguish where are the entry from( security question, login ,reset password....)
-            preparedStatement.setString(1, "from_security_question");
+//            String SysSource = "[hostile]";
+//            preparedStatement.setString(1, SysSource);
 
             ResultSet rs = preparedStatement.executeQuery();
 
@@ -112,7 +111,7 @@ public class HostileDao {
             preparedStatement.setString(2, SYSTEM_SOURCE);
             preparedStatement.setInt(3, countAttempts);
             preparedStatement.setLong(4, timeStampsID);
-            preparedStatement.setString(5, "");
+            preparedStatement.setString(5, "[Hostile]");
             preparedStatement.setInt(6, -1);
             preparedStatement.executeUpdate();
 
